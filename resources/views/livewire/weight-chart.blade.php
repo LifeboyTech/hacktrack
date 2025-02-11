@@ -1,5 +1,5 @@
 <div>
-    <canvas id="weightChart" height="100"></canvas>
+    <canvas id="weightChart" height="300"></canvas>
 
     <script>
         // Create a unique identifier for this instance
@@ -9,6 +9,9 @@
         window.weightCharts = window.weightCharts || {};
 
         function initChart(chartData) {
+            // Debug log to see what we're working with
+            console.log('Chart Data:', chartData);
+
             // Wait for DOM to be ready
             const canvas = document.getElementById('weightChart');
             if (!canvas) {
@@ -33,9 +36,10 @@
             const pointColors = [];
             for (let i = 0; i < chartData.labels.length; i++) {
                 if (chartData.weights[i] !== null && chartData.trends[i] !== null) {
+                    const dayNumber = parseInt(chartData.labels[i]);
                     const isAboveTrend = chartData.weights[i] > chartData.trends[i];
                     verticalLines.push({
-                        x: parseInt(chartData.labels[i]),
+                        x: dayNumber - 1,  // Subtract 1 to align with zero-based index
                         y1: chartData.weights[i],
                         y2: chartData.trends[i],
                         isAboveTrend: isAboveTrend,
@@ -55,7 +59,7 @@
                     
                     ctx.save();
                     verticalLines.forEach((line) => {
-                        const xPos = scales.x.getPixelForValue(line.x);
+                        const xPos = scales.x.getPixelForValue(line.x + 1);  // Add 1 back for display
                         const yPos1 = scales.y.getPixelForValue(line.y1);
                         const yPos2 = scales.y.getPixelForValue(line.y2);
                         
@@ -114,7 +118,64 @@
                     ]
                 },
                 options: {
-                    // ... your existing options ...
+                    animation: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 1,
+                            max: 28,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    return Math.floor(value);
+                                },
+                                color: '#9ca3af'
+                            },
+                            grid: {
+                                offset: true,
+                                color: '#374151'
+                            },
+                            border: {
+                                color: '#4b5563'
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            offset: true,
+                            ticks: {
+                                padding: 10,
+                                color: '#9ca3af'
+                            },
+                            grid: {
+                                offset: true,
+                                color: '#374151'
+                            },
+                            border: {
+                                color: '#4b5563'
+                            }
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            left: 25,
+                            right: 25,
+                            top: 10,
+                            bottom: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
+                    }
                 }
             });
         }
