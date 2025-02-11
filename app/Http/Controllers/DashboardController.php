@@ -15,10 +15,10 @@ class DashboardController extends Controller
         $trends = [];
         $trend = $trendCarryForward;
 
-        // If no trend carried forward, use first available weight
+        // If no trend carried forward, use first available valid weight
         if ($trend == 0) {
             foreach ($weights as $weight) {
-                if (!empty($weight)) {
+                if (!empty($weight) && $weight > 0) {
                     $trend = $weight;
                     break;
                 }
@@ -28,7 +28,7 @@ class DashboardController extends Controller
         // Calculate trend using exponential moving average
         if ($trend > 0) {
             foreach ($weights as $date => $weight) {
-                if (!empty($weight)) {
+                if (!empty($weight) && $weight > 0) {
                     // Using same formula as original: trend + ((weight - trend) / 10)
                     $trend = $trend + (($weight - $trend) / 10);
                 }
@@ -39,13 +39,25 @@ class DashboardController extends Controller
         return $trends;
     }
 
-    private function calculateVariation($weight, $trend)
+    private function calculateVariation($weight, $trend, $previousVariation = null)
     {
-        if (empty($weight) || empty($trend)) {
-            return null;
+        // If there's a valid weight, calculate actual variation
+        if (!empty($weight) && $weight > 0 && !empty($trend)) {
+            return round($weight - $trend, 1);
         }
         
-        return round($weight - $trend, 1);
+        // If there's no weight but we have a previous variation, carry it forward
+        if (!empty($previousVariation)) {
+            return $previousVariation;
+        }
+        
+        // If there's no weight and no previous variation but there is a trend,
+        // assume we're on trend (variation = 0)
+        if (!empty($trend)) {
+            return 0;
+        }
+        
+        return null;
     }
 
     private function getLastTrendFromPreviousMonth($date)
@@ -112,14 +124,23 @@ class DashboardController extends Controller
         $trends = $this->calculateTrend($weights, $trendCarryForward);
 
         // Second pass: build days array with all data
+        $previousVariation = null;
         for ($i = 1; $i <= $n_days_in_month; $i++) {
             $date = $year_month . '-' . str_pad($i, 2, '0', STR_PAD_LEFT);
             $dayRecord = Day::where('date', $date)
                            ->where('user_id', auth()->id())
                            ->first();
 
-            $trend = $trends[$date] ?? null;
-            $variation = $this->calculateVariation($dayRecord?->weight, $trend);
+            // Check if the date is in the future
+            $isFutureDate = Carbon::parse($date)->isAfter(now());
+
+            $trend = $isFutureDate ? null : ($trends[$date] ?? null);
+            $variation = $isFutureDate ? null : $this->calculateVariation($dayRecord?->weight, $trend, $previousVariation);
+            
+            // Store this variation for the next iteration
+            if ($dayRecord?->weight > 0) {
+                $previousVariation = $variation;
+            }
 
             $weight = null;
             if ($dayRecord?->weight !== null) {
@@ -137,6 +158,7 @@ class DashboardController extends Controller
                 'variation' => $variation,
                 'exercise_rung' => $dayRecord?->exercise_rung,
                 'notes' => $dayRecord?->notes,
+                'is_editable' => !$isFutureDate,
             ];
         }
 

@@ -16,6 +16,7 @@ class DayEntry extends Component
     public $variation;
     public $day;
     public $displayWeight;
+    public $is_editable;
 
     public function mount($day)
     {
@@ -27,6 +28,7 @@ class DayEntry extends Component
         $this->notes = $day['notes'];
         $this->trend = $day['trend'];
         $this->variation = $day['variation'];
+        $this->is_editable = $day['is_editable'];
     }
 
     public function updated($field, $value)
@@ -39,7 +41,11 @@ class DayEntry extends Component
                 $value = (float)$value;
             }
 
-            $day = Day::updateOrCreate(
+            if ($field === 'exercise_rung' || $field === 'weight') {
+                $value = $value == '' ? null : $value;
+            }
+
+            Day::updateOrCreate(
                 [
                     'date' => $this->date,
                     'user_id' => Auth::id()
@@ -52,13 +58,11 @@ class DayEntry extends Component
                 $this->displayWeight = floor($value) == $value 
                     ? number_format($value, 0) 
                     : number_format($value, 1);
+                
+                // Emit an event to trigger trend recalculation
+                $this->dispatch('weightUpdated');
             }
 
-            logger()->info('After update', [
-                'field' => $field,
-                'value' => $value,
-                'day' => $day->toArray()
-            ]);
         } catch (\Exception $e) {
             logger()->error('Error updating day', [
                 'error' => $e->getMessage(),
