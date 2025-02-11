@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Models\Day;
 use Illuminate\Support\Facades\Auth;
+use App\Services\WeightTrendService;
 
 class DayEntry extends Component
 {
@@ -36,7 +37,6 @@ class DayEntry extends Component
         try {
             $value = $this->{$field};
             
-            // Convert string numbers back to floats for weight
             if ($field === 'weight' && !is_null($value)) {
                 $value = (float)$value;
             }
@@ -53,14 +53,19 @@ class DayEntry extends Component
                 [$field => $value]
             );
 
-            // Update the display weight after saving
-            if ($field === 'weight' && !is_null($value)) {
-                $this->displayWeight = floor($value) == $value 
-                    ? number_format($value, 0) 
-                    : number_format($value, 1);
+            if ($field === 'weight') {
+                if (!is_null($value)) {
+                    $this->displayWeight = floor($value) == $value 
+                        ? number_format($value, 0) 
+                        : number_format($value, 1);
+                }
+
+                // Recalculate trend and variation
+                $weightTrendService = new WeightTrendService();
+                $calculations = $weightTrendService->recalculateForDate($this->date);
                 
-                // Emit an event to trigger trend recalculation
-                $this->dispatch('weightUpdated');
+                $this->trend = $calculations['trend'];
+                $this->variation = $calculations['variation'];
             }
 
         } catch (\Exception $e) {

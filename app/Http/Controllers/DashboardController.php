@@ -7,9 +7,17 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Models\DayRecord;
+use App\Services\WeightTrendService;
 
 class DashboardController extends Controller
 {
+    protected $weightTrendService;
+
+    public function __construct(WeightTrendService $weightTrendService)
+    {
+        $this->weightTrendService = $weightTrendService;
+    }
+
     private function calculateTrend($weights, $trendCarryForward = 0)
     {
         $trends = [];
@@ -121,7 +129,7 @@ class DashboardController extends Controller
         $trendCarryForward = $this->getLastTrendFromPreviousMonth($selected_date);
 
         // Calculate trends for all days using the carry-forward value
-        $trends = $this->calculateTrend($weights, $trendCarryForward);
+        $trends = $this->weightTrendService->calculateTrend($weights, $trendCarryForward);
 
         // Second pass: build days array with all data
         $previousVariation = null;
@@ -135,7 +143,11 @@ class DashboardController extends Controller
             $isFutureDate = Carbon::parse($date)->isAfter(now());
 
             $trend = $isFutureDate ? null : ($trends[$date] ?? null);
-            $variation = $isFutureDate ? null : $this->calculateVariation($dayRecord?->weight, $trend, $previousVariation);
+            $variation = $isFutureDate ? null : $this->weightTrendService->calculateVariation(
+                $dayRecord?->weight, 
+                $trend, 
+                $previousVariation
+            );
             
             // Store this variation for the next iteration
             if ($dayRecord?->weight > 0) {
