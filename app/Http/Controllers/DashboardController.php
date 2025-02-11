@@ -174,7 +174,39 @@ class DashboardController extends Controller
             ];
         }
 
-        return view('dashboard', compact('days', 'current_month_name', 'prev_month', 'next_month'));
+        // Prepare vertical lines data
+        $verticalLines = [];
+        foreach ($days as $day) {
+            if ($day['weight'] && $day['trend']) {
+                // Create two points for each vertical line
+                $verticalLines[] = [
+                    'x' => date('j', strtotime($day['date'])),
+                    'y' => floatval($day['weight'])
+                ];
+                $verticalLines[] = [
+                    'x' => date('j', strtotime($day['date'])),
+                    'y' => floatval($day['trend'])
+                ];
+                $verticalLines[] = null; // Add null to create a break between lines
+            }
+        }
+
+        $chartData = [
+            'labels' => array_map(function($day) {
+                return date('j', strtotime($day['date']));
+            }, $days),
+            'weights' => array_map(function($day) {
+                return $day['weight'] ? floatval($day['weight']) : null;
+            }, $days),
+            'trends' => array_map(function($day) {
+                return $day['trend'] ? floatval($day['trend']) : null;
+            }, $days)
+        ];
+
+        // Let's log the data to make sure it's not empty
+        \Log::info('Chart Data:', $chartData);
+
+        return view('dashboard', compact('days', 'current_month_name', 'prev_month', 'next_month', 'chartData'));
     }
 
     public function updateDay(Request $request)

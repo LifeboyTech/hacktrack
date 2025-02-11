@@ -68,6 +68,12 @@ class DayEntry extends Component
                 $this->variation = $calculations['variation'];
             }
 
+            // Get fresh chart data
+            $chartData = // ... your chart data generation logic ...
+
+            // Dispatch event to refresh chart with new data
+            $this->dispatch('refreshChart', newChartData: $chartData)->to('weight-chart');
+
         } catch (\Exception $e) {
             logger()->error('Error updating day', [
                 'error' => $e->getMessage(),

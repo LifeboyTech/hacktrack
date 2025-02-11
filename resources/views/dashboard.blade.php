@@ -23,6 +23,9 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg p-6 mb-6">
+                        <livewire:weight-chart :chartData="$chartData" />
+                    </div>
                     <table class="table-auto w-full">
                         <thead>
                             <tr>
@@ -44,4 +47,138 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('weightChart').getContext('2d');
+        
+        const weights = @json($chartData['weights']);
+        const trends = @json($chartData['trends']);
+        const labels = @json($chartData['labels']);
+
+        // Define colors
+        const belowTrendColor = 'rgb(75, 192, 192)';  // Green/blue for below trend
+        const aboveTrendColor = 'rgb(255, 99, 132)';  // Red for above trend
+        const trendColor = 'rgb(255, 99, 132)';       // Red for trend line
+
+        // Create pairs of points for vertical lines and determine point colors
+        const verticalLines = [];
+        const pointColors = [];
+        for (let i = 0; i < labels.length; i++) {
+            if (weights[i] !== null && trends[i] !== null) {
+                const isAboveTrend = weights[i] > trends[i];
+                verticalLines.push({
+                    x: i + 1,
+                    y1: weights[i],
+                    y2: trends[i],
+                    isAboveTrend: isAboveTrend,
+                    color: isAboveTrend ? aboveTrendColor : belowTrendColor
+                });
+                pointColors[i] = isAboveTrend ? aboveTrendColor : belowTrendColor;
+            }
+        }
+
+        // Register the plugin
+        const verticalLinesPlugin = {
+            id: 'verticalLines',
+            afterDraw: (chart) => {
+                const ctx = chart.ctx;
+                const scales = chart.scales;
+                const chartArea = chart.chartArea;
+                
+                ctx.save();
+                verticalLines.forEach((line) => {
+                    const xPos = scales.x.getPixelForValue(line.x);
+                    const yPos1 = scales.y.getPixelForValue(line.y1);
+                    const yPos2 = scales.y.getPixelForValue(line.y2);
+                    
+                    if (xPos >= chartArea.left && xPos <= chartArea.right) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = line.color;
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([]);
+                        ctx.moveTo(xPos, yPos1);
+                        ctx.lineTo(xPos, yPos2);
+                        ctx.stroke();
+                    }
+                });
+                ctx.restore();
+            }
+        };
+
+        Chart.register(verticalLinesPlugin);
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Weight',
+                        data: weights.map((y, index) => ({x: index + 1, y: y})),
+                        borderColor: pointColors,
+                        backgroundColor: pointColors,
+                        pointStyle: 'circle',
+                        showLine: false,
+                        pointRadius: 4,
+                        tension: 0.1,
+                        spanGaps: true
+                    },
+                    {
+                        label: 'Trend',
+                        data: trends.map((y, index) => ({x: index + 1, y: y})),
+                        borderColor: trendColor,
+                        backgroundColor: pointColors,
+                        pointStyle: 'circle',
+                        pointRadius: 3,
+                        tension: 0.1,
+                        spanGaps: true
+                    }
+                ]
+            },
+            options: {
+                animation: false,
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: 1,
+                        max: labels.length,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return Math.floor(value);
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: false,
+                        offset: true,
+                        ticks: {
+                            padding: 10
+                        }
+                    }
+                },
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 10
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                }
+            }
+        });
+    });
+    </script>
 </x-app-layout>
