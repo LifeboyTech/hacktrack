@@ -36,43 +36,7 @@
                         </thead>
                         <tbody>
                             @foreach ($days as $day)
-                                <tr>
-                                    <td class="border px-4 py-2">{{ $day['name'] }}</td>
-                                    <td class="border px-4 py-2">
-                                        <input 
-                                            type="number" 
-                                            step="0.1"
-                                            value="{{ $day['weight'] }}"
-                                            data-date="{{ $day['date'] }}"
-                                            data-field="weight"
-                                            class="day-input w-24 bg-gray-700 text-gray-200 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                        />
-                                    </td>
-                                    <td class="border px-4 py-2">
-                                        {{ $day['trend'] ?? '' }}
-                                    </td>
-                                    <td class="border px-4 py-2">
-                                        {{ $day['variation'] ?? '' }}
-                                    </td>
-                                    <td class="border px-4 py-2">
-                                        <input 
-                                            type="number"
-                                            value="{{ $day['exercise_rung'] }}"
-                                            data-date="{{ $day['date'] }}"
-                                            data-field="exercise_rung"
-                                            class="day-input w-24 bg-gray-700 text-gray-200 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                        />
-                                    </td>
-                                    <td class="border px-4 py-2">
-                                        <input 
-                                            type="text"
-                                            value="{{ $day['notes'] }}"
-                                            data-date="{{ $day['date'] }}"
-                                            data-field="notes"
-                                            class="day-input w-full bg-gray-700 text-gray-200 border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" 
-                                        />
-                                    </td>
-                                </tr>
+                                <livewire:day-entry :day="$day" :key="$day['date']" />
                             @endforeach
                         </tbody>
                     </table>
