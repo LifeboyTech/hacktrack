@@ -27,15 +27,9 @@ class DayEntry extends Component
         $this->notes = $day['notes'];
         $this->trend = $day['trend'];
         $this->variation = $day['variation'];
-
-        logger()->info('Mounting day entry', [
-            'original_weight' => $day['weight'],
-            'parsed_weight' => $this->weight,
-            'display_weight' => $this->displayWeight
-        ]);
     }
 
-    public function updateField($field)
+    public function updated($field, $value)
     {
         try {
             $value = $this->{$field};
