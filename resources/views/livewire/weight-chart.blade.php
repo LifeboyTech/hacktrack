@@ -182,6 +182,7 @@
 
         // Clean up any existing chart when the component is disconnected
         document.addEventListener('livewire:disconnected', () => {
+            console.log('Livewire disconnected');
             if (window.weightCharts[chartId]) {
                 window.weightCharts[chartId].destroy();
                 delete window.weightCharts[chartId];
@@ -193,7 +194,9 @@
 
         // Listen for Livewire events
         document.addEventListener('livewire:initialized', () => {
+            console.log('Livewire initialized');
             Livewire.on('chartDataUpdated', (data) => {
+                console.log('Chart Data Updated:', data);
                 initChart(data.chartData);
             });
         });

@@ -8,14 +8,17 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Models\DayRecord;
 use App\Services\WeightTrendService;
+use App\Services\ChartDataService;
 
 class DashboardController extends Controller
 {
     protected $weightTrendService;
+    protected $chartDataService;
 
-    public function __construct(WeightTrendService $weightTrendService)
+    public function __construct(WeightTrendService $weightTrendService, ChartDataService $chartDataService)
     {
         $this->weightTrendService = $weightTrendService;
+        $this->chartDataService = $chartDataService;
     }
 
     private function calculateTrend($weights, $trendCarryForward = 0)
@@ -102,111 +105,22 @@ class DashboardController extends Controller
             ? Carbon::createFromFormat('Y-m', $request->get('date'))
             : now();
             
-        $current_month = $selected_date->format('m');
-        $current_year = $selected_date->format('Y');
-        $year_month = $current_year . '-' . $current_month;
-        $n_days_in_month = $selected_date->daysInMonth;
         $current_month_name = $selected_date->format('F Y');
-
-        // Calculate previous and next month links
         $prev_month = $selected_date->copy()->subMonth()->format('Y-m');
         $next_month = $selected_date->copy()->addMonth()->format('Y-m');
 
-        $days = [];
-        $weights = []; // Will store weights for trend calculation
-        
-        // First pass: collect all weights
-        for ($i = 1; $i <= $n_days_in_month; $i++) {
-            $date = $year_month . '-' . str_pad($i, 2, '0', STR_PAD_LEFT);
-            $dayRecord = Day::where('date', $date)
-                           ->where('user_id', auth()->id())
-                           ->first();
+        // Get all data using the service
+        $data = $this->chartDataService->getData($request->get('date'));
+        $days = $data['days'];
+        $chartData = $data['chartData'];
 
-            $weights[$date] = $dayRecord?->weight;
-        }
-
-        // Get the trend carry-forward from previous month
-        $trendCarryForward = $this->getLastTrendFromPreviousMonth($selected_date);
-
-        // Calculate trends for all days using the carry-forward value
-        $trends = $this->weightTrendService->calculateTrend($weights, $trendCarryForward);
-
-        // Second pass: build days array with all data
-        $previousVariation = null;
-        for ($i = 1; $i <= $n_days_in_month; $i++) {
-            $date = $year_month . '-' . str_pad($i, 2, '0', STR_PAD_LEFT);
-            $dayRecord = Day::where('date', $date)
-                           ->where('user_id', auth()->id())
-                           ->first();
-
-            // Check if the date is in the future
-            $isFutureDate = Carbon::parse($date)->isAfter(now());
-
-            $trend = $isFutureDate ? null : ($trends[$date] ?? null);
-            $variation = $isFutureDate ? null : $this->weightTrendService->calculateVariation(
-                $dayRecord?->weight, 
-                $trend, 
-                $previousVariation
-            );
-            
-            // Store this variation for the next iteration
-            if ($dayRecord?->weight > 0) {
-                $previousVariation = $variation;
-            }
-
-            $weight = null;
-            if ($dayRecord?->weight !== null) {
-                $weight = floor($dayRecord->weight) == $dayRecord->weight 
-                    ? number_format($dayRecord->weight, 0) 
-                    : number_format($dayRecord->weight, 1);
-            }
-
-            $days[] = [
-                'day' => $i,
-                'name' => date('D, jS', strtotime($date)),
-                'date' => $date,
-                'weight' => $weight,
-                'trend' => $trend,
-                'variation' => $variation,
-                'exercise_rung' => $dayRecord?->exercise_rung,
-                'notes' => $dayRecord?->notes,
-                'is_editable' => !$isFutureDate,
-            ];
-        }
-
-        // Prepare vertical lines data
-        $verticalLines = [];
-        foreach ($days as $day) {
-            if ($day['weight'] && $day['trend']) {
-                // Create two points for each vertical line
-                $verticalLines[] = [
-                    'x' => date('j', strtotime($day['date'])),
-                    'y' => floatval($day['weight'])
-                ];
-                $verticalLines[] = [
-                    'x' => date('j', strtotime($day['date'])),
-                    'y' => floatval($day['trend'])
-                ];
-                $verticalLines[] = null; // Add null to create a break between lines
-            }
-        }
-
-        $chartData = [
-            'labels' => array_map(function($day) {
-                return date('j', strtotime($day['date']));
-            }, $days),
-            'weights' => array_map(function($day) {
-                return $day['weight'] ? floatval($day['weight']) : null;
-            }, $days),
-            'trends' => array_map(function($day) {
-                return $day['trend'] ? floatval($day['trend']) : null;
-            }, $days)
-        ];
-
-        // Let's log the data to make sure it's not empty
-        \Log::info('Chart Data:', $chartData);
-
-        return view('dashboard', compact('days', 'current_month_name', 'prev_month', 'next_month', 'chartData'));
+        return view('dashboard', compact(
+            'days',
+            'current_month_name',
+            'prev_month',
+            'next_month',
+            'chartData'
+        ));
     }
 
     public function updateDay(Request $request)

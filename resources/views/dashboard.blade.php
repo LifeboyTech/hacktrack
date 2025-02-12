@@ -50,12 +50,33 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+    let chart = null; // Add this line to store chart instance globally
+
     document.addEventListener('DOMContentLoaded', function() {
+        initChart();
+        
+        // Listen for Livewire events
+        Livewire.on('chartDataUpdated', (data) => {
+            if (chart) {
+                // Update existing chart
+                chart.data.labels = data.chartData.labels;
+                chart.data.datasets[0].data = data.chartData.weights.map((y, index) => ({x: index + 1, y: y}));
+                chart.data.datasets[1].data = data.chartData.trends.map((y, index) => ({x: index + 1, y: y}));
+                chart.update('none');
+            } else {
+                // Create new chart if none exists
+                initChart(data.chartData);
+            }
+        });
+    });
+
+    function initChart(chartData) {
         const ctx = document.getElementById('weightChart').getContext('2d');
         
-        const weights = @json($chartData['weights']);
-        const trends = @json($chartData['trends']);
-        const labels = @json($chartData['labels']);
+        // Use provided data or fall back to initial data
+        const weights = chartData ? chartData.weights : @json($chartData['weights']);
+        const trends = chartData ? chartData.trends : @json($chartData['trends']);
+        const labels = chartData ? chartData.labels : @json($chartData['labels']);
 
         // Define colors
         const belowTrendColor = 'rgb(75, 192, 192)';  // Green/blue for below trend
@@ -77,6 +98,11 @@
                 });
                 pointColors[i] = isAboveTrend ? aboveTrendColor : belowTrendColor;
             }
+        }
+
+        // If there's an existing chart, destroy it
+        if (chart) {
+            chart.destroy();
         }
 
         // Register the plugin
@@ -109,7 +135,7 @@
 
         Chart.register(verticalLinesPlugin);
 
-        const chart = new Chart(ctx, {
+        chart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
@@ -179,6 +205,8 @@
                 }
             }
         });
-    });
+
+        return chart;
+    }
     </script>
 </x-app-layout>

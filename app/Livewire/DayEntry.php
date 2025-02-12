@@ -6,6 +6,8 @@ use Livewire\Component;
 use App\Models\Day;
 use Illuminate\Support\Facades\Auth;
 use App\Services\WeightTrendService;
+use Illuminate\Support\Facades\Log;
+use App\Livewire\WeightChart;
 
 class DayEntry extends Component
 {
@@ -69,13 +71,20 @@ class DayEntry extends Component
             }
 
             // Get fresh chart data
-            $chartData = // ... your chart data generation logic ...
-
-            // Dispatch event to refresh chart with new data
-            $this->dispatch('refreshChart', newChartData: $chartData)->to('weight-chart');
+            Log::info('About to dispatch refreshChart from DayEntry', [
+                'target_component' => 'weight-chart',
+                'component_id' => $this->getId()
+            ]);
+            $this->dispatch('refreshChart');
+            // $this->dispatch('refreshChart')->to('weight-chart');  // Comment this out temporarily
+            Log::info('Successfully dispatched refreshChart from DayEntry');
 
         } catch (\Exception $e) {
             logger()->error('Error updating day', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            Log::error('Failed to dispatch refreshChart', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
