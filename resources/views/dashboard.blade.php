@@ -50,7 +50,42 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-    let chart = null; // Add this line to store chart instance globally
+    let chart = null;
+    let verticalLines = [];
+    let pointColors = [];
+    const belowTrendColor = 'rgb(75, 192, 192)';
+    const aboveTrendColor = 'rgb(255, 99, 132)';
+    const trendColor = 'rgb(255, 99, 132)';
+
+    // Register the plugin once, outside of any function
+    const verticalLinesPlugin = {
+        id: 'verticalLines',
+        afterDraw: (chart) => {
+            const ctx = chart.ctx;
+            const scales = chart.scales;
+            const chartArea = chart.chartArea;
+            
+            ctx.save();
+            verticalLines.forEach((line) => {
+                const xPos = scales.x.getPixelForValue(line.x);
+                const yPos1 = scales.y.getPixelForValue(line.y1);
+                const yPos2 = scales.y.getPixelForValue(line.y2);
+                
+                if (xPos >= chartArea.left && xPos <= chartArea.right) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = line.color;
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([]);
+                    ctx.moveTo(xPos, yPos1);
+                    ctx.lineTo(xPos, yPos2);
+                    ctx.stroke();
+                }
+            });
+            ctx.restore();
+        }
+    };
+
+    Chart.register(verticalLinesPlugin);
 
     document.addEventListener('DOMContentLoaded', function() {
         initChart();
@@ -62,7 +97,16 @@
                 chart.data.labels = data.chartData.labels;
                 chart.data.datasets[0].data = data.chartData.weights.map((y, index) => ({x: index + 1, y: y}));
                 chart.data.datasets[1].data = data.chartData.trends.map((y, index) => ({x: index + 1, y: y}));
-                chart.update('none');
+                
+                // Update verticalLines array and point colors
+                updateVerticalLines(data.chartData.weights, data.chartData.trends);
+                
+                // Update point colors for the weight dataset
+                chart.data.datasets[0].borderColor = pointColors;
+                chart.data.datasets[0].backgroundColor = pointColors;
+                
+                // Force a complete redraw instead of using 'none'
+                chart.update();
             } else {
                 // Create new chart if none exists
                 initChart(data.chartData);
@@ -70,23 +114,12 @@
         });
     });
 
-    function initChart(chartData) {
-        const ctx = document.getElementById('weightChart').getContext('2d');
+    // Add this new function to update vertical lines
+    function updateVerticalLines(weights, trends) {
+        verticalLines.length = 0; // Clear existing lines
+        pointColors.length = 0;   // Clear existing colors
         
-        // Use provided data or fall back to initial data
-        const weights = chartData ? chartData.weights : @json($chartData['weights']);
-        const trends = chartData ? chartData.trends : @json($chartData['trends']);
-        const labels = chartData ? chartData.labels : @json($chartData['labels']);
-
-        // Define colors
-        const belowTrendColor = 'rgb(75, 192, 192)';  // Green/blue for below trend
-        const aboveTrendColor = 'rgb(255, 99, 132)';  // Red for above trend
-        const trendColor = 'rgb(255, 99, 132)';       // Red for trend line
-
-        // Create pairs of points for vertical lines and determine point colors
-        const verticalLines = [];
-        const pointColors = [];
-        for (let i = 0; i < labels.length; i++) {
+        for (let i = 0; i < weights.length; i++) {
             if (weights[i] !== null && trends[i] !== null) {
                 const isAboveTrend = weights[i] > trends[i];
                 verticalLines.push({
@@ -99,41 +132,23 @@
                 pointColors[i] = isAboveTrend ? aboveTrendColor : belowTrendColor;
             }
         }
+    }
+
+    function initChart(chartData) {
+        const ctx = document.getElementById('weightChart').getContext('2d');
+        
+        // Use provided data or fall back to initial data
+        const weights = chartData ? chartData.weights : @json($chartData['weights']);
+        const trends = chartData ? chartData.trends : @json($chartData['trends']);
+        const labels = chartData ? chartData.labels : @json($chartData['labels']);
 
         // If there's an existing chart, destroy it
         if (chart) {
             chart.destroy();
         }
 
-        // Register the plugin
-        const verticalLinesPlugin = {
-            id: 'verticalLines',
-            afterDraw: (chart) => {
-                const ctx = chart.ctx;
-                const scales = chart.scales;
-                const chartArea = chart.chartArea;
-                
-                ctx.save();
-                verticalLines.forEach((line) => {
-                    const xPos = scales.x.getPixelForValue(line.x);
-                    const yPos1 = scales.y.getPixelForValue(line.y1);
-                    const yPos2 = scales.y.getPixelForValue(line.y2);
-                    
-                    if (xPos >= chartArea.left && xPos <= chartArea.right) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = line.color;
-                        ctx.lineWidth = 1;
-                        ctx.setLineDash([]);
-                        ctx.moveTo(xPos, yPos1);
-                        ctx.lineTo(xPos, yPos2);
-                        ctx.stroke();
-                    }
-                });
-                ctx.restore();
-            }
-        };
-
-        Chart.register(verticalLinesPlugin);
+        // Initialize vertical lines and point colors
+        updateVerticalLines(weights, trends);
 
         chart = new Chart(ctx, {
             type: 'line',
