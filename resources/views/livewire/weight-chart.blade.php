@@ -8,6 +8,45 @@
         // Store chart instances globally
         window.weightCharts = window.weightCharts || {};
 
+        // Define colors outside the function
+        const belowTrendColor = 'rgb(75, 192, 192)';
+        const aboveTrendColor = 'rgb(255, 99, 132)';
+        const trendColor = 'rgb(255, 99, 132)';
+
+        // Register the plugin once, outside of initChart
+        const verticalLinesPlugin = {
+            id: 'verticalLines',
+            afterDraw: (chart) => {
+                const ctx = chart.ctx;
+                const scales = chart.scales;
+                const chartArea = chart.chartArea;
+                const verticalLines = chart.data.verticalLines || [];
+                
+                ctx.save();
+                verticalLines.forEach((line) => {
+                    const xPos = scales.x.getPixelForValue(line.x + 1);
+                    const yPos1 = scales.y.getPixelForValue(line.y1);
+                    const yPos2 = scales.y.getPixelForValue(line.y2);
+                    
+                    if (xPos >= chartArea.left && xPos <= chartArea.right) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = line.color;
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([]);
+                        ctx.moveTo(xPos, yPos1);
+                        ctx.lineTo(xPos, yPos2);
+                        ctx.stroke();
+                    }
+                });
+                ctx.restore();
+            }
+        };
+
+        // Ensure plugin is registered only once
+        if (!Chart.registry.plugins.get('verticalLines')) {
+            Chart.register(verticalLinesPlugin);
+        }
+
         function initChart(chartData) {
             // Debug log to see what we're working with
             console.log('Chart Data:', chartData);
@@ -25,11 +64,6 @@
             }
 
             const ctx = canvas.getContext('2d');
-
-            // Define colors
-            const belowTrendColor = 'rgb(75, 192, 192)';
-            const aboveTrendColor = 'rgb(255, 99, 132)';
-            const trendColor = 'rgb(255, 99, 132)';
 
             // Create pairs of points for vertical lines and determine point colors
             const verticalLines = [];
@@ -49,41 +83,8 @@
                 }
             }
 
-            // Register the plugin
-            const verticalLinesPlugin = {
-                id: 'verticalLines',
-                afterDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const scales = chart.scales;
-                    const chartArea = chart.chartArea;
-                    
-                    ctx.save();
-                    verticalLines.forEach((line) => {
-                        const xPos = scales.x.getPixelForValue(line.x + 1);  // Add 1 back for display
-                        const yPos1 = scales.y.getPixelForValue(line.y1);
-                        const yPos2 = scales.y.getPixelForValue(line.y2);
-                        
-                        if (xPos >= chartArea.left && xPos <= chartArea.right) {
-                            ctx.beginPath();
-                            ctx.strokeStyle = line.color;
-                            ctx.lineWidth = 1;
-                            ctx.setLineDash([]);
-                            ctx.moveTo(xPos, yPos1);
-                            ctx.lineTo(xPos, yPos2);
-                            ctx.stroke();
-                        }
-                    });
-                    ctx.restore();
-                }
-            };
-
-            // Ensure plugin is registered only once
-            if (!Chart.registry.plugins.get('verticalLines')) {
-                Chart.register(verticalLinesPlugin);
-            }
-
             // Create new chart instance
-            window.weightCharts[chartId] = new Chart(ctx, {
+            const chartConfig = {
                 type: 'line',
                 data: {
                     labels: chartData.labels,
@@ -115,7 +116,8 @@
                             tension: 0.1,
                             spanGaps: true
                         }
-                    ]
+                    ],
+                    verticalLines: verticalLines  // Add vertical lines data to chart config
                 },
                 options: {
                     animation: false,
@@ -124,8 +126,9 @@
                     scales: {
                         x: {
                             type: 'linear',
+                            offset: true,
                             min: 1,
-                            max: 28,
+                            max: chartData.labels.length,
                             ticks: {
                                 stepSize: 1,
                                 callback: function(value) {
@@ -159,8 +162,8 @@
                     },
                     layout: {
                         padding: {
-                            left: 25,
-                            right: 25,
+                            left: 0,
+                            right: 0,
                             top: 10,
                             bottom: 10
                         }
@@ -177,7 +180,9 @@
                         }
                     }
                 }
-            });
+            };
+
+            window.weightCharts[chartId] = new Chart(ctx, chartConfig);
         }
 
         // Clean up any existing chart when the component is disconnected
