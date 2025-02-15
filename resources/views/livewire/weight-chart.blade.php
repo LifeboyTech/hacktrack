@@ -57,9 +57,12 @@
             }
 
             // Destroy existing chart for this canvas
-            if (window.WeightChartApp.charts[chartId]) {
-                window.WeightChartApp.charts[chartId].destroy();
-                delete window.WeightChartApp.charts[chartId];
+            const existingChart = Object.values(window.WeightChartApp.charts).find(chart => 
+                chart.canvas.id === 'weightChart'
+            );
+            if (existingChart) {
+                existingChart.destroy();
+                delete window.WeightChartApp.charts[existingChart.id];
             }
 
             const ctx = canvas.getContext('2d');

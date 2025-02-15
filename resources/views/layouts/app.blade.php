@@ -19,12 +19,12 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </head>
     <body class="font-['Inter'] antialiased">
-        <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
-            <livewire:layout.navigation />
+        <div class="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col h-screen">
+            <livewire:layout.navigation class="sticky top-0 z-50" />
 
             <!-- Page Heading -->
             @if (isset($header))
-                <header class="bg-white dark:bg-gray-800 shadow">
+                <header class="bg-white dark:bg-gray-800 shadow sticky top-[64px] z-40">
                     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
@@ -32,7 +32,7 @@
             @endif
 
             <!-- Page Content -->
-            <main>
+            <main class="flex-1 flex flex-col overflow-hidden">
                 {{ $slot }}
             </main>
         </div>
