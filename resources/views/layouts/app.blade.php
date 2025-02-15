@@ -17,6 +17,8 @@
         
         {{-- Add Chart.js --}}
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     </head>
     <body class="font-['Inter'] antialiased">
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col h-screen">

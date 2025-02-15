@@ -93,6 +93,19 @@ class DayEntry extends Component
 
     public function render()
     {
-        return view('livewire.day-entry');
+        $formattedVariation = null;
+        if (!is_null($this->variation)) {
+            $icon = $this->variation < 0 ? '↓' : '↑';
+            $color = $this->variation < 0 ? 'text-green-600' : 'text-red-600';
+            $formattedVariation = [
+                'value' => abs($this->variation),
+                'icon' => $icon,
+                'color' => $color
+            ];
+        }
+
+        return view('livewire.day-entry', [
+            'formattedVariation' => $formattedVariation
+        ]);
     }
 }

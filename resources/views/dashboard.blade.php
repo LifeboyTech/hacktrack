@@ -29,7 +29,7 @@
                 <div class="p-6 text-gray-900 dark:text-gray-100">
                     <div class="relative">
                         <div class="overflow-y-auto" id="days-container" style="max-height: calc(100vh - 400px);">
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-14 pt-4">
                                 @foreach ($days as $day)
                                     <livewire:day-entry :day="$day" :key="$day['date']" />
                                 @endforeach
