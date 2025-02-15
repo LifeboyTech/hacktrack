@@ -2,84 +2,85 @@
     <canvas id="weightChart" height="300"></canvas>
 
     <script>
-        // Create a unique identifier for this instance
-        const chartId = 'chart_' + Date.now();
-        
-        // Store chart instances globally
-        window.weightCharts = window.weightCharts || {};
+        // Create a namespace for our chart
+        if (!window.WeightChartApp) {
+            window.WeightChartApp = {
+                charts: {},
+                colors: {
+                    belowTrend: 'rgb(75, 192, 192)',
+                    aboveTrend: 'rgb(255, 99, 132)',
+                    trend: 'rgb(255, 99, 132)'
+                },
+                verticalLines: [],
+                pointColors: []
+            };
 
-        // Define colors outside the function
-        const belowTrendColor = 'rgb(75, 192, 192)';
-        const aboveTrendColor = 'rgb(255, 99, 132)';
-        const trendColor = 'rgb(255, 99, 132)';
-
-        // Register the plugin once, outside of initChart
-        const verticalLinesPlugin = {
-            id: 'verticalLines',
-            afterDraw: (chart) => {
-                const ctx = chart.ctx;
-                const scales = chart.scales;
-                const chartArea = chart.chartArea;
-                const verticalLines = chart.data.verticalLines || [];
-                
-                ctx.save();
-                verticalLines.forEach((line) => {
-                    const xPos = scales.x.getPixelForValue(line.x + 1);
-                    const yPos1 = scales.y.getPixelForValue(line.y1);
-                    const yPos2 = scales.y.getPixelForValue(line.y2);
+            // Register the plugin once, in our namespace
+            const verticalLinesPlugin = {
+                id: 'verticalLines',
+                afterDraw: (chart) => {
+                    const ctx = chart.ctx;
+                    const scales = chart.scales;
+                    const chartArea = chart.chartArea;
                     
-                    if (xPos >= chartArea.left && xPos <= chartArea.right) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = line.color;
-                        ctx.lineWidth = 1;
-                        ctx.setLineDash([]);
-                        ctx.moveTo(xPos, yPos1);
-                        ctx.lineTo(xPos, yPos2);
-                        ctx.stroke();
-                    }
-                });
-                ctx.restore();
-            }
-        };
+                    ctx.save();
+                    window.WeightChartApp.verticalLines.forEach((line) => {
+                        const xPos = scales.x.getPixelForValue(line.x);
+                        const yPos1 = scales.y.getPixelForValue(line.y1);
+                        const yPos2 = scales.y.getPixelForValue(line.y2);
+                        
+                        if (xPos >= chartArea.left && xPos <= chartArea.right) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = line.color;
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([]);
+                            ctx.moveTo(xPos, yPos1);
+                            ctx.lineTo(xPos, yPos2);
+                            ctx.stroke();
+                        }
+                    });
+                    ctx.restore();
+                }
+            };
 
-        // Ensure plugin is registered only once
-        if (!Chart.registry.plugins.get('verticalLines')) {
-            Chart.register(verticalLinesPlugin);
+            // Ensure plugin is registered only once
+            if (!Chart.registry.plugins.get('verticalLines')) {
+                Chart.register(verticalLinesPlugin);
+            }
         }
 
         function initChart(chartData) {
-            // Debug log to see what we're working with
-            console.log('Chart Data:', chartData);
-
-            // Wait for DOM to be ready
+            const chartId = 'chart_' + Date.now();
             const canvas = document.getElementById('weightChart');
             if (!canvas) {
                 return;
             }
 
             // Destroy existing chart for this canvas
-            if (window.weightCharts[chartId]) {
-                window.weightCharts[chartId].destroy();
-                delete window.weightCharts[chartId];
+            if (window.WeightChartApp.charts[chartId]) {
+                window.WeightChartApp.charts[chartId].destroy();
+                delete window.WeightChartApp.charts[chartId];
             }
 
             const ctx = canvas.getContext('2d');
 
             // Create pairs of points for vertical lines and determine point colors
-            const verticalLines = [];
-            const pointColors = [];
+            window.WeightChartApp.verticalLines = [];
+            window.WeightChartApp.pointColors = [];
             for (let i = 0; i < chartData.labels.length; i++) {
                 if (chartData.weights[i] !== null && chartData.trends[i] !== null) {
                     const dayNumber = parseInt(chartData.labels[i]);
                     const isAboveTrend = chartData.weights[i] > chartData.trends[i];
-                    verticalLines.push({
-                        x: dayNumber - 1,  // Subtract 1 to align with zero-based index
+                    window.WeightChartApp.verticalLines.push({
+                        x: dayNumber,
                         y1: chartData.weights[i],
                         y2: chartData.trends[i],
                         isAboveTrend: isAboveTrend,
-                        color: isAboveTrend ? aboveTrendColor : belowTrendColor
+                        color: isAboveTrend ? window.WeightChartApp.colors.aboveTrend : window.WeightChartApp.colors.belowTrend
                     });
-                    pointColors[i] = isAboveTrend ? aboveTrendColor : belowTrendColor;
+                    window.WeightChartApp.pointColors[i] = isAboveTrend ? 
+                        window.WeightChartApp.colors.aboveTrend : 
+                        window.WeightChartApp.colors.belowTrend;
                 }
             }
 
@@ -95,8 +96,8 @@
                                 x: parseInt(chartData.labels[index]),
                                 y: y
                             })),
-                            borderColor: pointColors,
-                            backgroundColor: pointColors,
+                            borderColor: window.WeightChartApp.pointColors,
+                            backgroundColor: window.WeightChartApp.pointColors,
                             pointStyle: 'circle',
                             showLine: false,
                             pointRadius: 4,
@@ -109,15 +110,15 @@
                                 x: parseInt(chartData.labels[index]),
                                 y: y
                             })),
-                            borderColor: trendColor,
-                            backgroundColor: pointColors,
+                            borderColor: window.WeightChartApp.colors.trend,
+                            backgroundColor: window.WeightChartApp.pointColors,
                             pointStyle: 'circle',
                             pointRadius: 3,
                             tension: 0.1,
                             spanGaps: true
                         }
                     ],
-                    verticalLines: verticalLines  // Add vertical lines data to chart config
+                    verticalLines: window.WeightChartApp.verticalLines
                 },
                 options: {
                     animation: false,
@@ -182,16 +183,17 @@
                 }
             };
 
-            window.weightCharts[chartId] = new Chart(ctx, chartConfig);
+            window.WeightChartApp.charts[chartId] = new Chart(ctx, chartConfig);
         }
 
         // Clean up any existing chart when the component is disconnected
         document.addEventListener('livewire:disconnected', () => {
-            console.log('Livewire disconnected');
-            if (window.weightCharts[chartId]) {
-                window.weightCharts[chartId].destroy();
-                delete window.weightCharts[chartId];
-            }
+            Object.values(window.WeightChartApp.charts).forEach(chart => {
+                if (chart) {
+                    chart.destroy();
+                }
+            });
+            window.WeightChartApp.charts = {};
         });
 
         // Initialize chart
@@ -199,9 +201,7 @@
 
         // Listen for Livewire events
         document.addEventListener('livewire:initialized', () => {
-            console.log('Livewire initialized');
             Livewire.on('chartDataUpdated', (data) => {
-                console.log('Chart Data Updated:', data);
                 initChart(data.chartData);
             });
         });

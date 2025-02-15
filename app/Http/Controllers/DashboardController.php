@@ -6,7 +6,6 @@ use App\Models\Day;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use App\Models\DayRecord;
 use App\Services\WeightTrendService;
 use App\Services\ChartDataService;
 
