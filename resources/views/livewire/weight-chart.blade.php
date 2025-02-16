@@ -2,54 +2,70 @@
     <canvas id="weightChart" height="300"></canvas>
 
     <script>
-        // Create a namespace for our chart
-        if (!window.WeightChartApp) {
-            window.WeightChartApp = {
-                charts: {},
-                colors: {
-                    belowTrend: 'rgb(75, 192, 192)',
-                    aboveTrend: 'rgb(255, 99, 132)',
-                    trend: 'rgb(255, 99, 132)'
-                },
-                verticalLines: [],
-                pointColors: []
-            };
+    
+        function registerVerticalLinesPlugin() {
+            if (!window.WeightChartApp) {
+                window.WeightChartApp = {
+                    charts: {},
+                    colors: {
+                        belowTrend: 'rgb(75, 192, 192)',
+                        aboveTrend: 'rgb(255, 99, 132)',
+                        trend: 'rgb(255, 99, 132)'
+                    },
+                    verticalLines: [],
+                    pointColors: []
+                };
 
-            // Register the plugin once, in our namespace
-            const verticalLinesPlugin = {
-                id: 'verticalLines',
-                afterDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const scales = chart.scales;
-                    const chartArea = chart.chartArea;
-                    
-                    ctx.save();
-                    window.WeightChartApp.verticalLines.forEach((line) => {
-                        const xPos = scales.x.getPixelForValue(line.x);
-                        const yPos1 = scales.y.getPixelForValue(line.y1);
-                        const yPos2 = scales.y.getPixelForValue(line.y2);
+                // Register the plugin once, in our namespace
+                const verticalLinesPlugin = {
+                    id: 'verticalLines',
+                    afterDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const scales = chart.scales;
+                        const chartArea = chart.chartArea;
                         
-                        if (xPos >= chartArea.left && xPos <= chartArea.right) {
-                            ctx.beginPath();
-                            ctx.strokeStyle = line.color;
-                            ctx.lineWidth = 1;
-                            ctx.setLineDash([]);
-                            ctx.moveTo(xPos, yPos1);
-                            ctx.lineTo(xPos, yPos2);
-                            ctx.stroke();
-                        }
-                    });
-                    ctx.restore();
-                }
-            };
+                        ctx.save();
+                        window.WeightChartApp.verticalLines.forEach((line) => {
+                            const xPos = scales.x.getPixelForValue(line.x);
+                            const yPos1 = scales.y.getPixelForValue(line.y1);
+                            const yPos2 = scales.y.getPixelForValue(line.y2);
+                            
+                            if (xPos >= chartArea.left && xPos <= chartArea.right) {
+                                ctx.beginPath();
+                                ctx.strokeStyle = line.color;
+                                ctx.lineWidth = 1;
+                                ctx.setLineDash([]);
+                                ctx.moveTo(xPos, yPos1);
+                                ctx.lineTo(xPos, yPos2);
+                                ctx.stroke();
+                            }
+                        });
+                        ctx.restore();
+                    }
+                };
 
-            // Ensure plugin is registered only once
-            if (!Chart.registry.plugins.get('verticalLines')) {
-                Chart.register(verticalLinesPlugin);
+                // Ensure plugin is registered only once
+                if (!Chart.registry.plugins.get('verticalLines')) {
+                    Chart.register(verticalLinesPlugin);
+                }
             }
         }
 
         function initChart(chartData) {
+
+            // Check if Chart is defined, if not wait and retry
+            if (typeof Chart === 'undefined') {
+                const checkInterval = setInterval(() => {
+                    if (typeof Chart !== 'undefined') {
+                        clearInterval(checkInterval);
+                        initChart(chartData);
+                    }
+                }, 100);
+                return;
+            }
+
+            registerVerticalLinesPlugin();
+
             const chartId = 'chart_' + Date.now();
             const canvas = document.getElementById('weightChart');
             if (!canvas) {
