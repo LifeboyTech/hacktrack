@@ -58,7 +58,7 @@
 
             // Destroy existing chart for this canvas
             const existingChart = Object.values(window.WeightChartApp.charts).find(chart => 
-                chart.canvas.id === 'weightChart'
+                chart.canvas && chart.canvas.id === 'weightChart'
             );
             if (existingChart) {
                 existingChart.destroy();
