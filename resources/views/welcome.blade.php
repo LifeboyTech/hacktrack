@@ -14,7 +14,7 @@
             <div class="relative flex min-h-screen flex-col items-center justify-center p-6">
                 <!-- Logo -->
                 <div class="mb-2 w-20 h-20">
-                    <img src="{{ asset('scale.svg') }}" alt="Logo" class="w-full h-full invert" />
+                    <img src="{{ asset('scale.svg') }}" alt="Logo" class="w-full h-full" />
                 </div>
 
                 <!-- Title -->
