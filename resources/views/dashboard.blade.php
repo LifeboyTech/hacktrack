@@ -17,7 +17,7 @@
         </div>
     </x-slot>
 
-    <div class="bg-gray-900">
+    <div class="bg-gray-900 sticky top-0">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <livewire:weight-chart :chartData="$chartData" />
         </div>
